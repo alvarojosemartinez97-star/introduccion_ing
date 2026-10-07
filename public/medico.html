@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Panel médico · Clínica Porto Azul</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="barra">
+    <div class="marca"><span class="logo">PA</span><div>Clínica Porto Azul<small>Panel del médico</small></div></div>
+    <div class="usuario-info"><span id="nombre-usuario"></span><button id="btn-salir" class="claro pequeno">Cerrar sesión</button></div>
+  </header>
+
+  <main>
+    <div class="tabs">
+      <button type="button" data-vista="citas" class="activo">Mis citas</button>
+      <button type="button" data-vista="horario">Mi horario</button>
+    </div>
+    <div id="msg" class="mensaje oculto"></div>
+
+    <section id="vista-citas">
+      <div class="resumen">
+        <div class="dato"><div class="num" id="n-hoy">0</div><div class="lbl">Pendientes hoy</div></div>
+        <div class="dato"><div class="num" id="n-pend">0</div><div class="lbl">Pendientes en total</div></div>
+        <div class="dato"><div class="num" id="n-atend">0</div><div class="lbl">Atendidas</div></div>
+        <div class="dato"><div class="num" id="n-canc">0</div><div class="lbl">Canceladas</div></div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Citas agendadas</h2>
+        <div class="fila">
+          <div>
+            <label for="f-estado">Estado</label>
+            <select id="f-estado">
+              <option value="pendiente" selected>Pendientes</option>
+              <option value="">Todas</option>
+              <option value="atendida">Atendidas</option>
+              <option value="cancelada">Canceladas</option>
+            </select>
+          </div>
+          <div>
+            <label for="f-fecha">Fecha (opcional)</label>
+            <input id="f-fecha" type="date">
+          </div>
+          <div style="flex:0 0 auto"><button type="button" class="secundario" id="btn-limpiar">Ver todas las fechas</button></div>
+        </div>
+        <div class="tabla-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Hora</th><th>Paciente</th><th>Contacto</th><th>Motivo</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="tabla-citas"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="vista-horario" class="oculto">
+      <div class="tarjeta">
+        <h2>Horario de atención</h2>
+        <p>Los pacientes solo podrán agendar en los días y horas que configure aquí.</p>
+        <form id="form-horario">
+          <label>Días de atención</label>
+          <div class="dias" id="dias"></div>
+          <div class="fila">
+            <div><label for="h-inicio">Hora de inicio</label><input id="h-inicio" type="time" required></div>
+            <div><label for="h-fin">Hora de fin</label><input id="h-fin" type="time" required></div>
+            <div>
+              <label for="h-duracion">Duración de cada cita</label>
+              <select id="h-duracion">
+                <option value="15">15 minutos</option>
+                <option value="20">20 minutos</option>
+                <option value="30">30 minutos</option>
+                <option value="45">45 minutos</option>
+                <option value="60">60 minutos</option>
+              </select>
+            </div>
+          </div>
+          <p><button type="submit">Guardar horario</button></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script src="/comun.js"></script>
+  <script src="/medico.js"></script>
+</body>
+</html>

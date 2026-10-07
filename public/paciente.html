@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mis citas · Clínica Porto Azul</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="barra">
+    <div class="marca"><span class="logo">PA</span><div>Clínica Porto Azul<small>Portal del paciente</small></div></div>
+    <div class="usuario-info"><span id="nombre-usuario"></span><button id="btn-salir" class="claro pequeno">Cerrar sesión</button></div>
+  </header>
+
+  <main>
+    <div class="tabs">
+      <button type="button" data-vista="agendar" class="activo">Agendar cita</button>
+      <button type="button" data-vista="mis-citas">Mis citas</button>
+    </div>
+    <div id="msg" class="mensaje oculto"></div>
+
+    <!-- Agendar -->
+    <section id="vista-agendar">
+      <div class="tarjeta">
+        <h2>1. Busque médicos disponibles</h2>
+        <div class="fila">
+          <div>
+            <label for="f-esp">Especialidad</label>
+            <select id="f-esp"><option value="">Todas las especialidades</option></select>
+          </div>
+          <div>
+            <label for="f-fecha">Fecha de la cita</label>
+            <input id="f-fecha" type="date">
+          </div>
+        </div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>2. Elija un médico</h2>
+        <div id="lista-medicos" class="grid-medicos"></div>
+      </div>
+
+      <div id="paso-horario" class="tarjeta oculto">
+        <h2>3. Elija el horario</h2>
+        <p id="resumen-medico"></p>
+        <div id="horas" class="horas"></div>
+        <label for="motivo">Motivo de la consulta (opcional)</label>
+        <textarea id="motivo" rows="2" maxlength="500" placeholder="Ej.: control, dolor de cabeza, revisión de exámenes..."></textarea>
+        <p><button id="btn-agendar" disabled>Confirmar cita</button></p>
+      </div>
+    </section>
+
+    <!-- Mis citas -->
+    <section id="vista-mis-citas" class="oculto">
+      <div class="tarjeta">
+        <h2>Mis citas</h2>
+        <div class="fila" style="max-width:320px">
+          <div>
+            <label for="f-estado">Filtrar por estado</label>
+            <select id="f-estado">
+              <option value="">Todas</option>
+              <option value="pendiente" selected>Pendientes</option>
+              <option value="atendida">Atendidas</option>
+              <option value="cancelada">Canceladas</option>
+            </select>
+          </div>
+        </div>
+        <div class="tabla-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Hora</th><th>Médico</th><th>Motivo</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="tabla-citas"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="dlg-reprogramar">
+    <h2>Reprogramar cita</h2>
+    <p id="rp-medico"></p>
+    <label for="rp-fecha">Nueva fecha</label>
+    <input id="rp-fecha" type="date">
+    <div id="rp-horas" class="horas"></div>
+    <div class="dialog-acciones">
+      <button type="button" class="secundario" id="rp-cerrar">Cerrar</button>
+      <button type="button" id="rp-guardar" disabled>Guardar cambios</button>
+    </div>
+  </dialog>
+
+  <script src="/comun.js"></script>
+  <script src="/paciente.js"></script>
+</body>
+</html>

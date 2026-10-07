@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clínica Porto Azul · Citas médicas</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="barra">
+    <div class="marca"><span class="logo">PA</span><div>Clínica Porto Azul<small>Agendamiento de citas médicas</small></div></div>
+  </header>
+
+  <main class="acceso">
+    <section class="hero">
+      <h1>Agende su cita médica en línea</h1>
+      <p>Consulte los médicos disponibles por especialidad y fecha, reserve su horario y gestione sus citas desde cualquier lugar.</p>
+      <ul>
+        <li><strong>Pacientes:</strong> buscar médicos disponibles, agendar, reprogramar, cancelar o eliminar citas.</li>
+        <li><strong>Médicos:</strong> ver las citas pendientes, marcarlas como atendidas o canceladas y configurar su horario.</li>
+      </ul>
+      <p class="demo">
+        <strong>Cuentas de prueba</strong><br>
+        Paciente: <code>paciente@demo.com</code> / <code>paciente123</code><br>
+        Médico: <code>mleon@portoazul.com</code> / <code>medico123</code>
+      </p>
+    </section>
+
+    <section class="tarjeta">
+      <div class="tabs">
+        <button id="tab-login" class="activo" type="button">Iniciar sesión</button>
+        <button id="tab-registro" type="button">Crear cuenta de paciente</button>
+      </div>
+      <div id="msg" class="mensaje oculto"></div>
+
+      <form id="form-login">
+        <label for="l-email">Correo electrónico</label>
+        <input id="l-email" type="email" required autocomplete="username">
+        <label for="l-pass">Contraseña</label>
+        <input id="l-pass" type="password" required autocomplete="current-password">
+        <p><button type="submit">Ingresar</button></p>
+      </form>
+
+      <form id="form-registro" class="oculto">
+        <label for="r-nombre">Nombre completo</label>
+        <input id="r-nombre" required>
+        <div class="fila">
+          <div><label for="r-cedula">Cédula</label><input id="r-cedula" inputmode="numeric" maxlength="13"></div>
+          <div><label for="r-tel">Teléfono</label><input id="r-tel" type="tel"></div>
+        </div>
+        <label for="r-email">Correo electrónico</label>
+        <input id="r-email" type="email" required autocomplete="username">
+        <label for="r-pass">Contraseña (mínimo 6 caracteres)</label>
+        <input id="r-pass" type="password" minlength="6" required autocomplete="new-password">
+        <p><button type="submit">Registrarme</button></p>
+      </form>
+    </section>
+  </main>
+
+  <script src="/comun.js"></script>
+  <script>
+    const u = Api.usuario();
+    if (Api.token() && u) location.href = u.rol === 'medico' ? '/medico.html' : '/paciente.html';
+
+    const msg = document.getElementById('msg');
+    const formLogin = document.getElementById('form-login');
+    const formRegistro = document.getElementById('form-registro');
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegistro = document.getElementById('tab-registro');
+
+    function verTab(registro) {
+      formLogin.classList.toggle('oculto', registro);
+      formRegistro.classList.toggle('oculto', !registro);
+      tabLogin.classList.toggle('activo', !registro);
+      tabRegistro.classList.toggle('activo', registro);
+      msg.classList.add('oculto');
+    }
+    tabLogin.onclick = () => verTab(false);
+    tabRegistro.onclick = () => verTab(true);
+
+    function entrar(sesion) {
+      Api.guardarSesion(sesion);
+      location.href = sesion.usuario.rol === 'medico' ? '/medico.html' : '/paciente.html';
+    }
+
+    formLogin.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        entrar(await Api.post('/api/login', {
+          email: document.getElementById('l-email').value,
+          password: document.getElementById('l-pass').value,
+        }));
+      } catch (err) { mostrarMensaje(msg, err.message, 'error'); }
+    });
+
+    formRegistro.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        entrar(await Api.post('/api/registro', {
+          nombre: document.getElementById('r-nombre').value,
+          cedula: document.getElementById('r-cedula').value,
+          telefono: document.getElementById('r-tel').value,
+          email: document.getElementById('r-email').value,
+          password: document.getElementById('r-pass').value,
+        }));
+      } catch (err) { mostrarMensaje(msg, err.message, 'error'); }
+    });
+  </script>
+</body>
+</html>
