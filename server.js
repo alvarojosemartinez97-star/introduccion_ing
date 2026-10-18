@@ -72,7 +72,8 @@ function crearApp({ dbFile = path.join(__dirname, 'data', 'db.json'), reloj = ()
   const sesiones = new Map(); // token -> { id, expira }
   const intentos = new Map(); // correo -> { fallos, bloqueadoHasta }
   // Métricas de eficiencia: tiempo de respuesta y tasa de errores de la API
-  const metricas = { solicitudes: 0, fallidas: 0, erroresServidor: 0, tiempoTotalMs: 0, tiempoMaxMs: 0 };
+  const metricas = { solicitudes: 0, fallidas: 0, erroresServidor: 0, tiempoTotalMs: 0, tiempoMaxMs: 0, bytesEnviados: 0 };
+  const inicioServidor = { cpu: process.cpuUsage(), tiempo: process.hrtime.bigint() };
 
   function crearSesion(usuario) {
     const token = crypto.randomBytes(24).toString('hex');
@@ -215,6 +216,7 @@ function crearApp({ dbFile = path.join(__dirname, 'data', 'db.json'), reloj = ()
         tasaErrorPct: solicitudes ? redondear((fallidas / solicitudes) * 100) : 0,
         tiempoPromedioMs: solicitudes ? redondear(tiempoTotalMs / solicitudes) : 0,
         tiempoMaxMs: redondear(tiempoMaxMs),
+        recursos: usoDeRecursos(),
       }];
     }],
 
@@ -355,11 +357,32 @@ function crearApp({ dbFile = path.join(__dirname, 'data', 'db.json'), reloj = ()
     }
   }
 
+  // Uso de recursos: CPU · RAM · disco · red
+  function usoDeRecursos() {
+    const mb = (bytes) => Math.round((bytes / 1048576) * 10) / 10;
+    const cpu = process.cpuUsage(inicioServidor.cpu);
+    const transcurridoUs = Number(process.hrtime.bigint() - inicioServidor.tiempo) / 1000;
+    let discoKB = 0;
+    try {
+      discoKB = Math.round((fs.statSync(dbFile).size / 1024) * 10) / 10;
+    } catch {
+      discoKB = 0;
+    }
+    return {
+      cpuPct: transcurridoUs ? Math.round(((cpu.user + cpu.system) / transcurridoUs) * 10000) / 100 : 0,
+      memoriaMB: mb(process.memoryUsage().rss),
+      discoKB,
+      redKB: Math.round((metricas.bytesEnviados / 1024) * 10) / 10,
+    };
+  }
+
   function enviarJson(res, status, data) {
     const cabeceras = { 'Content-Type': 'application/json; charset=utf-8' };
     if (res.inicio) cabeceras['X-Response-Time'] = `${(Number(process.hrtime.bigint() - res.inicio) / 1e6).toFixed(2)}ms`;
+    const cuerpo = JSON.stringify(data);
+    metricas.bytesEnviados += Buffer.byteLength(cuerpo);
     res.writeHead(status, cabeceras);
-    res.end(JSON.stringify(data));
+    res.end(cuerpo);
   }
 
   function servirEstatico(res, pathname) {

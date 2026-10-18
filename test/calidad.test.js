@@ -80,3 +80,12 @@ test('eficiencia: el médico consulta tiempo de respuesta y tasa de errores', as
   assert.strictEqual(data.tasaErrorPct, Math.round((data.fallidas / data.solicitudes) * 10000) / 100);
   assert.ok(data.tiempoPromedioMs < 2000);
 });
+
+test('eficiencia: reporta el uso de recursos (CPU, RAM, disco y red)', async () => {
+  const tMed = (await login('mleon@portoazul.com', 'medico123')).data.token;
+  const { recursos } = (await api('GET', '/api/metricas', { token: tMed })).data;
+  assert.ok(recursos.cpuPct >= 0);
+  assert.ok(recursos.memoriaMB > 0);
+  assert.ok(recursos.discoKB > 0);
+  assert.ok(recursos.redKB > 0);
+});

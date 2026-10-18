@@ -119,6 +119,10 @@ async function cargarMetricas() {
     $('m-tasa').textContent = m.tasaErrorPct;
     $('m-total').textContent = m.solicitudes;
     $('m-500').textContent = m.erroresServidor;
+    $('r-cpu').textContent = m.recursos.cpuPct;
+    $('r-ram').textContent = m.recursos.memoriaMB;
+    $('r-disco').textContent = m.recursos.discoKB;
+    $('r-red').textContent = m.recursos.redKB;
   } catch (err) { mostrarMensaje(msg, err.message, 'error'); }
 }
 

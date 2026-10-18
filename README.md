@@ -22,6 +22,7 @@ En el panel del médico, pestaña **Indicadores** (o `GET /api/metricas`):
 
 - **Tiempo de respuesta:** T = t final − t inicial (promedio y máximo, en ms). Meta: menos de 2000 ms.
 - **Tasa de errores:** E = fallidas ÷ totales × 100. Se separan los errores del servidor (5xx) de las solicitudes rechazadas por datos inválidos o accesos no permitidos (4xx).
+- **Uso de recursos:** CPU promedio (%), memoria RAM (MB), disco ocupado por la base de datos (KB) y red: datos enviados por la API (KB).
 
 ## Requisitos
 
@@ -80,7 +81,7 @@ Todas las rutas (salvo registro/login) requieren el encabezado `Authorization: B
 | POST | `/api/registro` | — | Crear cuenta de paciente |
 | POST | `/api/login` · `/api/logout` | — | Iniciar / cerrar sesión |
 | GET | `/api/me` | todos | Usuario actual |
-| GET | `/api/metricas` | médico | Tiempo de respuesta y tasa de errores |
+| GET | `/api/metricas` | médico | Tiempo de respuesta, tasa de errores y uso de recursos |
 | GET | `/api/especialidades` | todos | Lista de especialidades |
 | GET | `/api/medicos?especialidad=&fecha=` | todos | Médicos y cuántos horarios libres tienen ese día |
 | GET | `/api/medicos/:id/disponibilidad?fecha=` | todos | Bloques horarios del día (libre / ocupado) |
