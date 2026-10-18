@@ -8,7 +8,9 @@ document.querySelectorAll('.tabs button').forEach((b) => {
     document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('activo', x === b));
     $('vista-citas').classList.toggle('oculto', b.dataset.vista !== 'citas');
     $('vista-horario').classList.toggle('oculto', b.dataset.vista !== 'horario');
+    $('vista-indicadores').classList.toggle('oculto', b.dataset.vista !== 'indicadores');
     if (b.dataset.vista === 'citas') cargarCitas();
+    if (b.dataset.vista === 'indicadores') cargarMetricas();
   });
 });
 
@@ -107,6 +109,20 @@ $('form-horario').addEventListener('submit', async (e) => {
     mostrarMensaje(msg, 'Horario actualizado.');
   } catch (err) { mostrarMensaje(msg, err.message, 'error'); }
 });
+
+// ---------- indicadores ----------
+async function cargarMetricas() {
+  try {
+    const m = await Api.get('/api/metricas');
+    $('m-tiempo').textContent = m.tiempoPromedioMs;
+    $('m-max').textContent = m.tiempoMaxMs;
+    $('m-tasa').textContent = m.tasaErrorPct;
+    $('m-total').textContent = m.solicitudes;
+    $('m-500').textContent = m.erroresServidor;
+  } catch (err) { mostrarMensaje(msg, err.message, 'error'); }
+}
+
+$('btn-metricas').addEventListener('click', cargarMetricas);
 
 // ---------- inicio ----------
 if (usuario) {

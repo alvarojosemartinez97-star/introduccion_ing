@@ -16,6 +16,9 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 const ESTADOS = ['pendiente', 'atendida', 'cancelada'];
+const SESION_MS = 8 * 60 * 60 * 1000; // la sesión vence a las 8 horas
+const MAX_INTENTOS = 5; // intentos fallidos de inicio de sesión antes de bloquear
+const BLOQUEO_MS = 15 * 60 * 1000; // tiempo de bloqueo tras superar los intentos
 
 class HttpError extends Error {
   constructor(status, message) {
@@ -64,9 +67,28 @@ function bloquesDelDia(medico, fecha) {
 
 // ---------- aplicación ----------
 
-function crearApp({ dbFile = path.join(__dirname, 'data', 'db.json') } = {}) {
+function crearApp({ dbFile = path.join(__dirname, 'data', 'db.json'), reloj = () => Date.now() } = {}) {
   const db = new Database(dbFile);
-  const sesiones = new Map(); // token -> id de usuario
+  const sesiones = new Map(); // token -> { id, expira }
+  const intentos = new Map(); // correo -> { fallos, bloqueadoHasta }
+  // Métricas de eficiencia: tiempo de respuesta y tasa de errores de la API
+  const metricas = { solicitudes: 0, fallidas: 0, erroresServidor: 0, tiempoTotalMs: 0, tiempoMaxMs: 0 };
+
+  function crearSesion(usuario) {
+    const token = crypto.randomBytes(24).toString('hex');
+    sesiones.set(token, { id: usuario.id, expira: reloj() + SESION_MS });
+    return token;
+  }
+
+  function usuarioDeToken(token) {
+    const sesion = sesiones.get(token);
+    if (!sesion) return null;
+    if (sesion.expira <= reloj()) {
+      sesiones.delete(token);
+      return null;
+    }
+    return buscarUsuario(sesion.id);
+  }
 
   const buscarUsuario = (id) => db.usuarios.find((u) => u.id === id);
 
@@ -150,20 +172,28 @@ function crearApp({ dbFile = path.join(__dirname, 'data', 'db.json') } = {}) {
       const usuario = { id: db.nextId(), rol: 'paciente', nombre, email, cedula: String(cedula).trim(), telefono: String(telefono).trim(), salt, hash };
       db.usuarios.push(usuario);
       db.save();
-      const token = crypto.randomBytes(24).toString('hex');
-      sesiones.set(token, usuario.id);
-      return [201, { token, usuario: publico(usuario) }];
+      return [201, { token: crearSesion(usuario), usuario: publico(usuario) }];
     }],
 
     ['POST', /^\/api\/login$/, ({ body }) => {
       const email = (body.email || '').trim().toLowerCase();
+      const registro = intentos.get(email) || { fallos: 0, bloqueadoHasta: 0 };
+      if (registro.bloqueadoHasta > reloj()) {
+        const minutos = Math.ceil((registro.bloqueadoHasta - reloj()) / 60000);
+        throw new HttpError(429, `Demasiados intentos fallidos. Intente de nuevo en ${minutos} minuto(s).`);
+      }
       const usuario = db.usuarios.find((u) => u.email === email);
       if (!usuario || !verifyPassword(String(body.password || ''), usuario.salt, usuario.hash)) {
+        registro.fallos += 1;
+        if (registro.fallos >= MAX_INTENTOS) {
+          registro.fallos = 0;
+          registro.bloqueadoHasta = reloj() + BLOQUEO_MS;
+        }
+        intentos.set(email, registro);
         throw new HttpError(401, 'Correo o contraseña incorrectos.');
       }
-      const token = crypto.randomBytes(24).toString('hex');
-      sesiones.set(token, usuario.id);
-      return [200, { token, usuario: publico(usuario) }];
+      intentos.delete(email);
+      return [200, { token: crearSesion(usuario), usuario: publico(usuario) }];
     }],
 
     ['POST', /^\/api\/logout$/, ({ token }) => {
@@ -172,6 +202,21 @@ function crearApp({ dbFile = path.join(__dirname, 'data', 'db.json') } = {}) {
     }],
 
     ['GET', /^\/api\/me$/, ({ usuario }) => [200, publico(requerir(usuario))]],
+
+    // Indicadores de eficiencia (personal médico)
+    ['GET', /^\/api\/metricas$/, ({ usuario }) => {
+      requerir(usuario, 'medico');
+      const { solicitudes, fallidas, erroresServidor, tiempoTotalMs, tiempoMaxMs } = metricas;
+      const redondear = (n) => Math.round(n * 100) / 100;
+      return [200, {
+        solicitudes,
+        fallidas,
+        erroresServidor,
+        tasaErrorPct: solicitudes ? redondear((fallidas / solicitudes) * 100) : 0,
+        tiempoPromedioMs: solicitudes ? redondear(tiempoTotalMs / solicitudes) : 0,
+        tiempoMaxMs: redondear(tiempoMaxMs),
+      }];
+    }],
 
     ['GET', /^\/api\/especialidades$/, () => {
       const lista = [...new Set(db.usuarios.filter((u) => u.rol === 'medico').map((u) => u.especialidad))].sort();
@@ -311,7 +356,9 @@ function crearApp({ dbFile = path.join(__dirname, 'data', 'db.json') } = {}) {
   }
 
   function enviarJson(res, status, data) {
-    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+    const cabeceras = { 'Content-Type': 'application/json; charset=utf-8' };
+    if (res.inicio) cabeceras['X-Response-Time'] = `${(Number(process.hrtime.bigint() - res.inicio) / 1e6).toFixed(2)}ms`;
+    res.writeHead(status, cabeceras);
     res.end(JSON.stringify(data));
   }
 
@@ -338,12 +385,22 @@ function crearApp({ dbFile = path.join(__dirname, 'data', 'db.json') } = {}) {
       if (req.method !== 'GET' && req.method !== 'HEAD') return enviarJson(res, 405, { error: 'Método no permitido.' });
       return servirEstatico(res, url.pathname);
     }
+    // Tiempo de respuesta: T = t final − t inicial; tasa de errores: E = fallidas ÷ totales × 100
+    res.inicio = process.hrtime.bigint();
+    res.on('finish', () => {
+      const ms = Number(process.hrtime.bigint() - res.inicio) / 1e6;
+      metricas.solicitudes += 1;
+      metricas.tiempoTotalMs += ms;
+      metricas.tiempoMaxMs = Math.max(metricas.tiempoMaxMs, ms);
+      if (res.statusCode >= 400) metricas.fallidas += 1;
+      if (res.statusCode >= 500) metricas.erroresServidor += 1;
+    });
     try {
       const ruta = rutas.find(([m, re]) => m === req.method && re.test(url.pathname));
       if (!ruta) throw new HttpError(404, 'Ruta no encontrada.');
       const params = url.pathname.match(ruta[1]).slice(1);
       const token = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-      const usuario = sesiones.has(token) ? buscarUsuario(sesiones.get(token)) : null;
+      const usuario = usuarioDeToken(token);
       const body = ['POST', 'PUT', 'PATCH'].includes(req.method) ? await leerBody(req) : {};
       const query = Object.fromEntries(url.searchParams);
       const [status, data] = await ruta[2]({ req, usuario, token, params, query, body: body || {} });

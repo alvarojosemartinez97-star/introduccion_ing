@@ -16,6 +16,7 @@
     <div class="tabs">
       <button type="button" data-vista="citas" class="activo">Mis citas</button>
       <button type="button" data-vista="horario">Mi horario</button>
+      <button type="button" data-vista="indicadores">Indicadores</button>
     </div>
     <div id="msg" class="mensaje oculto"></div>
 
@@ -77,6 +78,21 @@
           </div>
           <p><button type="submit">Guardar horario</button></p>
         </form>
+      </div>
+    </section>
+
+    <section id="vista-indicadores" class="oculto">
+      <div class="tarjeta">
+        <h2>Indicadores de calidad del servicio</h2>
+        <p>Medición de eficiencia de la plataforma desde que se inició el servidor.</p>
+        <div class="resumen">
+          <div class="dato"><div class="num" id="m-tiempo">0</div><div class="lbl">Tiempo promedio de respuesta (ms)</div></div>
+          <div class="dato"><div class="num" id="m-max">0</div><div class="lbl">Tiempo máximo (ms) · meta &lt; 2000</div></div>
+          <div class="dato"><div class="num" id="m-tasa">0</div><div class="lbl">Tasa de solicitudes fallidas (%)</div></div>
+          <div class="dato"><div class="num" id="m-total">0</div><div class="lbl">Solicitudes atendidas</div></div>
+        </div>
+        <p><small>T = t final − t inicial · E = fallidas ÷ totales × 100. Las fallidas incluyen datos inválidos o accesos rechazados; los errores del servidor son <span id="m-500">0</span>.</small></p>
+        <p><button type="button" class="secundario" id="btn-metricas">Actualizar</button></p>
       </div>
     </section>
   </main>

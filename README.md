@@ -5,6 +5,24 @@ Aplicación web para agendar citas médicas en la Clínica Porto Azul, con dos v
 - **Paciente**: se registra, busca **médicos disponibles** por especialidad y fecha, ve los horarios libres de cada médico, **agenda**, **reprograma**, **cancela** o **elimina** sus citas.
 - **Médico**: ve sus **citas pendientes** (con resumen de hoy / total / atendidas / canceladas), filtra por fecha y estado, marca citas como **atendidas** o las **cancela** (con nota opcional que ve el paciente) y configura su **horario de atención** (días, horas y duración de cada cita).
 
+## Calidad del software (ISO/IEC 25010)
+
+| Criterio | Cómo lo cumple el sistema | Evidencia |
+|----------|---------------------------|-----------|
+| Funcionalidad | Agendar, reprogramar, cancelar y atender citas según los requisitos | `test/api.test.js` |
+| Fiabilidad | Escritura atómica del archivo de datos (archivo temporal + renombrar) | `lib/db.js` |
+| Rendimiento | Consulta de médicos en menos de 2 s; cabecera `X-Response-Time` en cada respuesta | `test/calidad.test.js` |
+| Seguridad | Contraseñas con hash scrypt, bloqueo tras 5 intentos fallidos (15 min), sesión que vence a las 8 h | `test/calidad.test.js` |
+| Mantenibilidad | Módulos separados (servidor, datos, interfaz) y pruebas automáticas | `npm test` |
+| Usabilidad | Formularios simples y mensajes de error claros en español | Interfaz web |
+
+### Métricas de eficiencia
+
+En el panel del médico, pestaña **Indicadores** (o `GET /api/metricas`):
+
+- **Tiempo de respuesta:** T = t final − t inicial (promedio y máximo, en ms). Meta: menos de 2000 ms.
+- **Tasa de errores:** E = fallidas ÷ totales × 100. Se separan los errores del servidor (5xx) de las solicitudes rechazadas por datos inválidos o accesos no permitidos (4xx).
+
 ## Requisitos
 
 - Node.js 18 o superior. No usa dependencias externas (no hace falta `npm install`).
@@ -50,6 +68,7 @@ public/             Interfaz web
   comun.js          Utilidades compartidas
   styles.css        Estilos
 test/api.test.js    Pruebas de la API
+test/calidad.test.js Pruebas de seguridad, rendimiento y eficiencia
 ```
 
 ## API
@@ -61,6 +80,7 @@ Todas las rutas (salvo registro/login) requieren el encabezado `Authorization: B
 | POST | `/api/registro` | — | Crear cuenta de paciente |
 | POST | `/api/login` · `/api/logout` | — | Iniciar / cerrar sesión |
 | GET | `/api/me` | todos | Usuario actual |
+| GET | `/api/metricas` | médico | Tiempo de respuesta y tasa de errores |
 | GET | `/api/especialidades` | todos | Lista de especialidades |
 | GET | `/api/medicos?especialidad=&fecha=` | todos | Médicos y cuántos horarios libres tienen ese día |
 | GET | `/api/medicos/:id/disponibilidad?fecha=` | todos | Bloques horarios del día (libre / ocupado) |
